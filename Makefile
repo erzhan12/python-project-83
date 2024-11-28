@@ -10,8 +10,8 @@ lint:
 test:
 	poetry run pytest
 
+PORT ?= 8000
 start:
-	PORT ?= 8000
 	poetry run gunicorn -w 5 -b 0.0.0.0:$(PORT) page_analyzer:app
 
 .PHONY: install dev lint test start
