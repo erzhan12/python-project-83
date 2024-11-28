@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, render_template
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -14,7 +14,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 # First route handler
 @app.route('/')
 def index():
-    return 'Welcome to Page Analyzer!'
+    return render_template('index.html')
 
 # This allows the app to be run directly
 if __name__ == '__main__':
