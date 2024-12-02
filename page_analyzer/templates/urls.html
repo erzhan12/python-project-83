@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<h1>Сайты</h1>
+{% endblock %}
+
+{% block urls_table %}
+<div class="table-responsive">
+    <table class="table table-bordered table-hover text-nowrap" data-test="urls">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Последняя проверка</th>
+                <th>Код ответа</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for url in urls %}
+            <tr>
+                <td>{{ url['id'] }}</td>
+                <td>{{ url['name'] }}</td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

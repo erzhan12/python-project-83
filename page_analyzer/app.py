@@ -1,7 +1,8 @@
 import os
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request, url_for, redirect
+from flask import flash, get_flashed_messages
 from dotenv import load_dotenv
-from page_analyzer.db import insert_url
+from page_analyzer.db import insert_url, read_all, read_url_by_id
 from page_analyzer.validator import validate
 import logging
 
@@ -27,19 +28,49 @@ def index():
 @app.post('/urls')
 def urls_post():
     url = request.form.get('url')
-    logging.info(url)
+    # logging.info(url)
 
-    errors = validate(url)
-    if errors:
+    messages = validate(url)
+    if messages['class'] == 'alert-danger':
+        flash(messages['text'], messages['class'])
         return render_template(
             'index.html',
-            errors=errors
+            messages=[(messages['class'], messages['text'])]
         ), 422
 
-    # insert a new row into db
-    insert_url(url)
+    if messages['class'] != 'alert-info':
+        # insert a new row into db
+        id = insert_url(url)
+        if id is not None:
+            messages['class'] = 'alert-success'
+            messages['text'] = 'Страница успешно добавлена'
+            messages['id'] = id
 
-    return {'message': 'URL received', 'url': url}
+    flash(messages['text'], messages['class'])
+
+    return redirect(url_for('urls_id', id=messages['id']))
+
+
+@app.route('/urls')
+def urls_get():
+    urls = read_all()
+    # logging.info(urls)
+    return render_template(
+        'urls.html',
+        urls=urls
+    ), 422
+
+
+@app.get('/urls/<id>')
+def urls_id(id):
+    row = read_url_by_id(id)
+    # logging.info(row)
+    messages = get_flashed_messages(with_categories=True)
+    return render_template(
+            'url_show.html',
+            messages=messages,
+            row=row
+        ), 422
 
 
 # This allows the app to be run directly

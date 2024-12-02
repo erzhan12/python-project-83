@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<h1>Сайт: {{ row['name'] }}</h1>
+{% endblock %}
+
+{% block url_table %}
+<div class="table-responsive">
+    <table class="table table-bordered table-hover text-nowrap" data-test="url">
+        <tbody>
+            <tr>
+                <td>ID</td>
+                <td>{{ row['id'] }}</td>
+            </tr>
+            <tr>
+                <td>Имя</td>
+                <td>{{ row['name'] }}</td>
+            </tr>
+            <tr>
+                <td>Дата создания</td>
+                <td>{{ row['created_at'].strftime("%Y-%m-%d") }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

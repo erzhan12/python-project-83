@@ -1,11 +1,34 @@
+from page_analyzer.db import read_url
+from validators.url import url as url_validator
+from validators import ValidationError
+import logging
+
+
 def validate(url):
-    errors = {}
-    if not url or not url.startswith('https://') or \
-       not url.startswith('http://'):
-        errors['message'] = ('Invalid URL. Please provide a valid URL'
-                             'starting with http:// or https://')
+    messages = {}
+
+    try:
+        validation_result = url_validator(url)
+    except ValidationError:
+        pass
+
+    logging.info(validation_result)
+    if validation_result is not True:
+        messages['text'] = 'Некорректный URL'
+        messages['class'] = 'alert-danger'
+        return messages
 
     if len(url) > 255:
-        errors['message'] = "Can't be longer than 255 characters"
+        messages['text'] = "URL превышает 255 символов"
+        messages['class'] = 'alert-danger'
 
-    return errors
+    else:
+        # check DB table if name exists
+        row = read_url(url)
+        # logging.info(row)
+        if row is not None:
+            messages['text'] = 'Страница уже существует'
+            messages['class'] = 'alert-info'
+            messages['id'] = row['id']
+
+    return messages
