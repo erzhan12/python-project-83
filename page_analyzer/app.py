@@ -2,7 +2,8 @@ import os
 from flask import Flask, render_template, request, url_for, redirect
 from flask import flash, get_flashed_messages
 from dotenv import load_dotenv
-from page_analyzer.db import insert_url, read_all, read_url_by_id
+from page_analyzer.db import insert_url, read_url_all, read_url_by_id
+from page_analyzer.db import insert_check, read_url_checks_all
 from page_analyzer.validator import validate
 import logging
 
@@ -53,7 +54,7 @@ def urls_post():
 
 @app.route('/urls')
 def urls_get():
-    urls = read_all()
+    urls = read_url_all()
     # logging.info(urls)
     return render_template(
         'urls.html',
@@ -63,14 +64,34 @@ def urls_get():
 
 @app.get('/urls/<id>')
 def urls_id(id):
-    row = read_url_by_id(id)
-    # logging.info(row)
+    url_row = read_url_by_id(id)
+    url_checks = read_url_checks_all(id)
+    logging.info(url_row)
     messages = get_flashed_messages(with_categories=True)
     return render_template(
             'url_show.html',
             messages=messages,
-            row=row
+            url_row=url_row,
+            url_checks=url_checks
         ), 422
+
+
+@app.post('/urls/<id>/checks')
+def urls_checks_post(id):
+    # read url by id
+    url_row = read_url_by_id(id)
+    # perform checking
+    # TODO
+    # insert new check into DB table
+    insert_check(id)
+    # read all checks from db table
+    url_checks = read_url_checks_all(id)
+    # return render url_show checks=checks
+    return render_template(
+        'url_show.html',
+        url_checks=url_checks,
+        url_row=url_row
+    ), 422
 
 
 # This allows the app to be run directly

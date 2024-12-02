@@ -1,7 +1,7 @@
 from page_analyzer.db import read_url
 from validators.url import url as url_validator
 from validators import ValidationError
-import logging
+# import logging
 
 
 def validate(url):
