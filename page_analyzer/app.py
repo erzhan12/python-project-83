@@ -51,7 +51,7 @@ def urls_post():
     return redirect(url_for('urls_id', id=messages['id']))
 
 
-@app.route('/urls')
+@app.get('/urls')
 def urls_get():
     urls = read_all()
     # logging.info(urls)

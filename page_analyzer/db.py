@@ -61,6 +61,3 @@ def read_all():
         print(f"Error reading all URLs: {error}")
 
     return rows
-
-
-print(read_all())

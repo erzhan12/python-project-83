@@ -12,7 +12,7 @@ def validate(url):
     except ValidationError:
         pass
 
-    logging.info(validation_result)
+    # logging.info(validation_result)
     if validation_result is not True:
         messages['text'] = 'Некорректный URL'
         messages['class'] = 'alert-danger'
