@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 DATABASE_URL = os.getenv('DATABASE_URL')
 conn = psycopg2.connect(DATABASE_URL)
+print(conn)
 
 
 def insert_url(url):
@@ -17,7 +18,7 @@ def insert_url(url):
             url_id = cur.fetchone()['id']
             conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        logging.info(error)
         conn.rollback()
     finally:
         return url_id
@@ -31,7 +32,7 @@ def read_url(url):
             cur.execute(sql, (url,))
             row = cur.fetchone()
     except (Exception, psycopg2.DatabaseError) as error:
-        print(f"Error reading all URLs: {error}")
+        logging.info(f"Error reading URL: {error}")
 
     return row
 
@@ -44,7 +45,7 @@ def read_url_by_id(id):
             cur.execute(sql, (id,))
             row = cur.fetchone()
     except (Exception, psycopg2.DatabaseError) as error:
-        print(f"Error reading all URLs: {error}")
+        logging.info(f"Error reading URL by ID: {error}")
     return row
 
 
@@ -56,7 +57,7 @@ def read_url_all():
             cur.execute(sql)
             rows = cur.fetchall()
     except (Exception, psycopg2.DatabaseError) as error:
-        print(f"Error reading all URLs: {error}")
+        logging.info(f"Error reading all URLs: {error}")
 
     return rows
 
@@ -70,7 +71,7 @@ def insert_check(url_id):
             check_id = cur.fetchone()['id']
             conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        logging.info(error)
         conn.rollback()
     finally:
         return check_id
@@ -84,10 +85,6 @@ def read_url_checks_all(url_id):
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(sql, (url_id,))
             rows = cur.fetchall()
-    except psycopg2.OperationalError as op_error:
-        logging.info(f"Operational error: {op_error}")
-    except psycopg2.DatabaseError as db_error:
-        logging.info(f"Database error: {db_error}")
-    except Exception as error:
-        logging.info(f"Unexpected error: {error}")
+    except (Exception, psycopg2.DatabaseError) as error:
+        logging.info(f"Error reading URL Checks: {error}")
     return rows

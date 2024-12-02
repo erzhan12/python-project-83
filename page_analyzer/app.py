@@ -46,7 +46,6 @@ def urls_post():
             messages['class'] = 'alert-success'
             messages['text'] = 'Страница успешно добавлена'
             messages['id'] = id
-    
     flash(messages['text'], messages['class'])
 
     return redirect(url_for('urls_id', id=messages['id']))
