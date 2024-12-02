@@ -20,8 +20,6 @@ def insert_url(url):
         print(error)
         conn.rollback()
     finally:
-        if cur:
-            cur.close()
         return url_id
 
 
@@ -75,8 +73,6 @@ def insert_check(url_id):
         print(error)
         conn.rollback()
     finally:
-        if cur:
-            cur.close()
         return check_id
 
 
