@@ -52,7 +52,7 @@ def read_url_by_id(id):
 
 def read_url_all():
     sql = "SELECT * FROM urls ORDER BY created_at DESC;"
-    rows = None
+    rows = []
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(sql)
