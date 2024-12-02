@@ -31,14 +31,14 @@ def urls_post():
     # logging.info(url)
 
     messages = validate(url)
-    if messages['class'] == 'alert-danger':
-        flash(messages['text'], messages['class'])
+    if messages and messages['class'] == 'alert-danger':
+        # flash(messages['text'], messages['class'])
         return render_template(
             'index.html',
             messages=[(messages['class'], messages['text'])]
         ), 422
 
-    if messages['class'] != 'alert-info':
+    if not messages or messages['class'] != 'alert-info':
         # insert a new row into db
         id = insert_url(url)
         if id is not None:
@@ -51,7 +51,7 @@ def urls_post():
     return redirect(url_for('urls_id', id=messages['id']))
 
 
-@app.get('/urls')
+@app.route('/urls')
 def urls_get():
     urls = read_all()
     # logging.info(urls)
