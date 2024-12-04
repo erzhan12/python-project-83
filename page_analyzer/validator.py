@@ -1,7 +1,7 @@
 from page_analyzer.db import read_url
 from validators.url import url as url_validator
 from validators import ValidationError
-# import logging
+import logging
 
 
 def validate(url):
@@ -24,8 +24,9 @@ def validate(url):
 
     else:
         # check DB table if name exists
+        logging.info(f'Start reading URL {url}')
         row = read_url(url)
-        # logging.info(row)
+        logging.info(f'End reading URL {url}. Result: {row}')
         if row is not None:
             messages['text'] = 'Страница уже существует'
             messages['class'] = 'alert-info'
