@@ -5,7 +5,15 @@ import logging
 from dotenv import load_dotenv
 load_dotenv()
 DATABASE_URL = os.getenv('DATABASE_URL')
-conn = psycopg2.connect(DATABASE_URL)
+
+keepalive_kwargs = {
+    "keepalives": 1,
+    "keepalives_idle": 60,
+    "keepalives_interval": 10,
+    "keepalives_count": 5
+}
+
+conn = psycopg2.connect(DATABASE_URL, **keepalive_kwargs)
 
 
 def insert_url(url):

@@ -63,7 +63,9 @@ def urls_get():
 
 @app.get('/urls/<id>')
 def urls_id(id):
+    logging.info(f'Start reading url by id: {id}')
     url_row = read_url_by_id(id)
+    logging.info(f'End reading url by id: {id} result: {url_row}')
     url_checks = read_url_checks_all(id)
     logging.info(url_row)
     messages = get_flashed_messages(with_categories=True)
