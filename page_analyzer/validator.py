@@ -1,35 +1,43 @@
-from page_analyzer.db import read_url
+# from page_analyzer.db import read_url
 from validators.url import url as url_validator
 from validators import ValidationError
 import logging
 
 
-def validate(url):
-    messages = {}
+class URLValidator:
+    """Class to validate URLs."""
 
-    try:
-        validation_result = url_validator(url)
-    except ValidationError:
-        pass
+    def __init__(self, url_manager):
+        self.messages = {}
+        self.url_manager = url_manager
 
-    # logging.info(validation_result)
-    if validation_result is not True:
-        messages['text'] = 'Некорректный URL'
-        messages['class'] = 'alert-danger'
-        return messages
+    def validate(self, url):
+        try:
+            validation_result = url_validator(url)
+        except ValidationError:
+            pass
 
-    if len(url) > 255:
-        messages['text'] = "URL превышает 255 символов"
-        messages['class'] = 'alert-danger'
+        # logging.info(validation_result)
+        if validation_result is not True:
+            self.messages['text'] = 'Некорректный URL'
+            self.messages['class'] = 'alert-danger'
+            return self.messages
 
-    else:
-        # check DB table if name exists
-        logging.info(f'Start reading URL {url}')
-        row = read_url(url)
-        logging.info(f'End reading URL {url}. Result: {row}')
-        if row is not None:
-            messages['text'] = 'Страница уже существует'
-            messages['class'] = 'alert-info'
-            messages['id'] = row['id']
+        if len(url) > 255:
+            self.messages['text'] = "URL превышает 255 символов"
+            self.messages['class'] = 'alert-danger'
+        else:
+            # check DB table if name exists
+            logging.info(f'Start reading URL {url}')
+            row = self.url_manager.read_url(url)
+            logging.info(f'End reading URL {url}. Result: {row}')
+            if row is not None:
+                self.messages['text'] = 'Страница уже существует'
+                self.messages['class'] = 'alert-info'
+                self.messages['id'] = row['id']
 
-    return messages
+        return self.messages
+
+# Example usage:
+# validator = URLValidator("http://example.com")
+# result = validator.validate()
