@@ -139,6 +139,40 @@ class URLManager:
 
         return rows
 
+    def read_url_with_latest_checks(self):
+        """
+        Read URLs along with their latest check results.
+
+        :return: List of URLs with their latest check information
+        """
+        sql = """
+        SELECT
+            urls.id,
+            urls.name,
+            latest_check.created_at AS latest_created_at,
+            latest_check.status_code AS latest_status_code
+        FROM urls
+        JOIN (
+            SELECT DISTINCT ON (url_id)
+                url_id,
+                created_at,
+                status_code
+            FROM url_checks
+            ORDER BY url_id, created_at DESC
+        ) AS latest_check ON urls.id = latest_check.url_id
+        ORDER BY urls.id DESC;
+        """
+        rows = []
+
+        try:
+            with self.db_connection.get_cursor() as cur:
+                cur.execute(sql)
+                rows = cur.fetchall()
+        except (Exception, psycopg2.DatabaseError) as error:
+            logging.error(f"Error reading URLs with latest checks: {error}")
+
+        return rows
+
 
 class URLCheckManager:
     """Manages operations related to URL checks in the database."""
@@ -193,101 +227,3 @@ class URLCheckManager:
         except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"Error reading URL checks: {error}")
         return rows
-
-# import psycopg2
-# from psycopg2.extras import RealDictCursor
-# import os
-# import logging
-# from dotenv import load_dotenv
-# load_dotenv()
-# DATABASE_URL = os.getenv('DATABASE_URL')
-
-# keepalive_kwargs = {
-#     "keepalives": 1,
-#     "keepalives_idle": 60,
-#     "keepalives_interval": 10,
-#     "keepalives_count": 5
-# }
-
-# conn = psycopg2.connect(DATABASE_URL, **keepalive_kwargs)
-
-
-# def insert_url(url):
-#     sql = "INSERT INTO urls (name) VALUES (%s) RETURNING id;"
-#     url_id = None
-#     try:
-#         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-#             cur.execute(sql, (url,))
-#             url_id = cur.fetchone()['id']
-#             conn.commit()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         logging.info(error)
-#         conn.rollback()
-#     finally:
-#         return url_id
-
-
-# def read_url(url):
-#     sql = "SELECT * FROM urls WHERE name = %s;"
-#     row = None
-#     try:
-#         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-#             cur.execute(sql, (url,))
-#             row = cur.fetchone()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         logging.info(f"Error reading URL: {error}")
-
-#     return row
-
-
-# def read_url_by_id(id):
-#     sql = "SELECT * FROM urls WHERE id = %s;"
-#     row = None
-#     try:
-#         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-#             cur.execute(sql, (id,))
-#             row = cur.fetchone()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         logging.info(f"Error reading URL by ID: {error}")
-#     return row
-
-
-# def read_url_all():
-#     sql = "SELECT * FROM urls ORDER BY created_at DESC;"
-#     rows = []
-#     try:
-#         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-#             cur.execute(sql)
-#             rows = cur.fetchall()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         logging.info(f"Error reading all URLs: {error}")
-
-#     return rows
-
-
-# def insert_check(url_id):
-#     sql = "INSERT INTO url_checks (url_id) VALUES (%s) RETURNING id;"
-#     check_id = None
-#     try:
-#         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-#             cur.execute(sql, (url_id,))
-#             check_id = cur.fetchone()['id']
-#             conn.commit()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         logging.info(error)
-#         conn.rollback()
-#     finally:
-#         return check_id
-
-
-# def read_url_checks_all(url_id):
-#     sql = "SELECT * FROM url_checks WHERE url_id = (%s) \
-#            ORDER BY created_at DESC;"
-#     rows = []
-#     try:
-#         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-#             cur.execute(sql, (url_id,))
-#             rows = cur.fetchall()
-#     except (Exception, psycopg2.DatabaseError) as error:
-#         logging.info(f"Error reading URL Checks: {error}")
-#     return rows

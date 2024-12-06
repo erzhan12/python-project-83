@@ -20,8 +20,8 @@
             <tr>
                 <td>{{ url['id'] }}</td>
                 <td><a href="{{ url_for('urls_id', url_id=url['id']) }}">{{ url['name'] }}</a></td>
-                <td></td>
-                <td></td>
+                <td>{{ url['latest_created_at'].strftime("%Y-%m-%d") }}</td>
+                <td>{{ url['latest_status_code'] }}</td>
             </tr>
             {% endfor %}
         </tbody>

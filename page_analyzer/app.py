@@ -68,11 +68,12 @@ def urls_post():
 
 @app.route('/urls')
 def urls_get():
-    urls = url_manager.read_all_urls()
+    # urls = url_manager.read_all_urls()
+    urls_with_lates_checks = url_manager.read_url_with_latest_checks()
     # logging.info(urls)
     return render_template(
         'urls.html',
-        urls=urls
+        urls=urls_with_lates_checks
     ), 422
 
 
