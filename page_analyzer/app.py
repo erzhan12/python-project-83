@@ -2,12 +2,12 @@ import os
 from flask import Flask, render_template, request, url_for, redirect
 from flask import flash, get_flashed_messages
 from dotenv import load_dotenv
-# from page_analyzer.db import insert_url, read_url_all, read_url_by_id
-# from page_analyzer.db import insert_check, read_url_checks_all
-# from page_analyzer.validator import validate
 from page_analyzer.validator import URLValidator
+from page_analyzer.url_checker import URLChecker
 import logging
 from page_analyzer.db import URLManager, URLCheckManager, DatabaseConnection
+from urllib.error import HTTPError
+from requests.exceptions import RequestException
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +29,10 @@ url_manager = URLManager(db_connection)
 url_check_manager = URLCheckManager(db_connection)
 
 # Create URL Validator
-url_validator1 = URLValidator(url_manager)
+url_validator = URLValidator(url_manager)
+
+# Create URL Checker
+url_checker = URLChecker()
 
 
 # First route handler
@@ -43,7 +46,7 @@ def urls_post():
     url = request.form.get('url')
     # logging.info(url)
 
-    messages = url_validator1.validate(url)
+    messages = url_validator.validate(url)
     if messages and messages['class'] == 'alert-danger':
         # flash(messages['text'], messages['class'])
         return render_template(
@@ -53,7 +56,6 @@ def urls_post():
 
     if not messages or messages['class'] != 'alert-info':
         # insert a new row into db
-        # id = insert_url(url)
         id = url_manager.insert_url(url)
         if id is not None:
             messages['class'] = 'alert-success'
@@ -61,12 +63,11 @@ def urls_post():
             messages['id'] = id
     flash(messages['text'], messages['class'])
 
-    return redirect(url_for('urls_id', id=messages['id']))
+    return redirect(url_for('urls_id', url_id=messages['id']))
 
 
 @app.route('/urls')
 def urls_get():
-    # urls = read_url_all()
     urls = url_manager.read_all_urls()
     # logging.info(urls)
     return render_template(
@@ -75,14 +76,14 @@ def urls_get():
     ), 422
 
 
-@app.get('/urls/<id>')
-def urls_id(id):
-    logging.info(f'Start reading url by id: {id}')
+@app.get('/urls/<url_id>')
+def urls_id(url_id):
+    logging.info(f'Start reading url by id: {url_id}')
     # url_row = read_url_by_id(id)
-    url_row = url_manager.read_url(url_id=id)
-    logging.info(f'End reading url by id: {id} result: {url_row['name']}')
+    url_row = url_manager.read_url(url_id=url_id)
+    logging.info(f'End reading url by id: {url_id} result: {url_row['name']}')
     # url_checks = read_url_checks_all(id)
-    url_checks = url_check_manager.read_url_checks(url_id=id)
+    url_checks = url_check_manager.read_url_checks(url_id=url_id)
     # logging.info(url_checks)
     messages = get_flashed_messages(with_categories=True)
     return render_template(
@@ -93,19 +94,22 @@ def urls_id(id):
         ), 422
 
 
-@app.post('/urls/<id>/checks')
-def urls_checks_post(id):
+@app.post('/urls/<url_id>/checks')
+def urls_checks_post(url_id):
     # read url by id
-    # url_row = read_url_by_id(id)
-    url_row = url_manager.read_url(url_id=id)
+    url_row = url_manager.read_url(url_id=url_id)
     # perform checking
-    # TODO
+    try:
+        url_check_result = url_checker.check(url_row['name'])
+    except (HTTPError, RequestException):
+        flash('Произошла ошибка при проверке')
     # insert new check into DB table
-    # insert_check(id)
-    url_check_manager.insert_check(id)
+    if url_check_result:
+        logging.info(f'URL Check Result: {url_check_result}')
+        url_check_manager.insert_check(url_id, url_check_result)
+
     # read all checks from db table
-    # url_checks = read_url_checks_all(id)
-    url_checks = url_check_manager.read_url_checks(id)
+    url_checks = url_check_manager.read_url_checks(url_id)
     # return render url_show checks=checks
     return render_template(
         'url_show.html',

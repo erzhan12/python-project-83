@@ -19,7 +19,7 @@
             {% for url in urls %}
             <tr>
                 <td>{{ url['id'] }}</td>
-                <td>{{ url['name'] }}</td>
+                <td><a href="{{ url_for('urls_id', url_id=url['id']) }}">{{ url['name'] }}</a></td>
                 <td></td>
                 <td></td>
             </tr>

@@ -151,19 +151,22 @@ class URLCheckManager:
         """
         self.db_connection = db_connection
 
-    def insert_check(self, url_id):
+    def insert_check(self, url_id, url_check_result):
         """
         Insert a new URL check record.
 
         :param url_id: ID of the URL to check
+        :param url_check_result: Tuple result of url check
         :return: Inserted check record's ID or None
         """
-        sql = "INSERT INTO url_checks (url_id) VALUES (%s) RETURNING id;"
+        sql = ("INSERT INTO url_checks "
+               "(url_id, status_code, h1, title, description) "
+               "VALUES (%s, %s, %s, %s, %s) RETURNING id;")
         check_id = None
 
         try:
             with self.db_connection.get_cursor() as cur:
-                cur.execute(sql, (url_id,))
+                cur.execute(sql, (url_id, *url_check_result))
                 check_id = cur.fetchone()['id']
                 self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
