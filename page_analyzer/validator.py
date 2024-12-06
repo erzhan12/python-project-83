@@ -12,6 +12,7 @@ class URLValidator:
         self.url_manager = url_manager
 
     def validate(self, url):
+        validation_result = None
         try:
             validation_result = url_validator(url)
         except ValidationError:

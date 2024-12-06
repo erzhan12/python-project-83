@@ -48,7 +48,6 @@ def urls_post():
 
     messages = url_validator.validate(url)
     if messages and messages['class'] == 'alert-danger':
-        # flash(messages['text'], messages['class'])
         return render_template(
             'index.html',
             messages=[(messages['class'], messages['text'])]
@@ -56,11 +55,12 @@ def urls_post():
 
     if not messages or messages['class'] != 'alert-info':
         # insert a new row into db
-        id = url_manager.insert_url(url)
-        if id is not None:
+        url_id = url_manager.insert_url(url)
+        if url_id is not None:
             messages['class'] = 'alert-success'
             messages['text'] = 'Страница успешно добавлена'
-            messages['id'] = id
+            messages['id'] = url_id
+
     flash(messages['text'], messages['class'])
 
     return redirect(url_for('urls_id', url_id=messages['id']))
@@ -69,11 +69,11 @@ def urls_post():
 @app.route('/urls')
 def urls_get():
     # urls = url_manager.read_all_urls()
-    urls_with_lates_checks = url_manager.read_url_with_latest_checks()
+    urls_with_latest_checks = url_manager.read_url_with_latest_checks()
     # logging.info(urls)
     return render_template(
         'urls.html',
-        urls=urls_with_lates_checks
+        urls=urls_with_latest_checks
     ), 422
 
 
@@ -97,6 +97,7 @@ def urls_id(url_id):
 
 @app.post('/urls/<url_id>/checks')
 def urls_checks_post(url_id):
+    url_check_result = None
     # read url by id
     url_row = url_manager.read_url(url_id=url_id)
     # perform checking
