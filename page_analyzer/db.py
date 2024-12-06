@@ -149,10 +149,12 @@ class URLManager:
         SELECT
             urls.id,
             urls.name,
-            latest_check.created_at AS latest_created_at,
-            latest_check.status_code AS latest_status_code
+            COALESCE(TO_CHAR(latest_check.created_at, 'YYYY-MM-DD'), '')
+                AS latest_created_at,
+            COALESCE(latest_check.status_code::text, '')
+                AS latest_status_code
         FROM urls
-        JOIN (
+        LEFT OUTER JOIN (
             SELECT DISTINCT ON (url_id)
                 url_id,
                 created_at,

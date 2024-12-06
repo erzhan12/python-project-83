@@ -47,6 +47,7 @@ def urls_post():
     # logging.info(url)
 
     messages = url_validator.validate(url)
+    logging.info(f'Validation result: {messages}')
     if messages and messages['class'] == 'alert-danger':
         return render_template(
             'index.html',
