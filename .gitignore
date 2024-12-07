@@ -22,3 +22,5 @@ build/
 # Logs
 *.log
 
+# Pytest cache
+.pytest_cache/
