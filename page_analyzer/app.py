@@ -19,10 +19,11 @@ load_dotenv()
 app = Flask(__name__)
 
 # Set secret key from environment variable
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SECRET_KEY'] = "3bb41977871bb5de0339a57e3cc1d720"
+# os.getenv('SECRET_KEY')
 
 # Create a database connection
-db_connection = DatabaseConnection()
+db_connection = DatabaseConnection(os.getenv('DATABASE_URL'))
 
 # Create managers
 url_manager = URLManager(db_connection)
