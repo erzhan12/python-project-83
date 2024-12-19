@@ -8,6 +8,7 @@ import logging
 from page_analyzer.db import URLManager, URLCheckManager, DatabaseConnection
 from urllib.error import HTTPError
 from requests.exceptions import RequestException
+from page_analyzer.config import config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +20,9 @@ load_dotenv()
 app = Flask(__name__)
 
 # Set secret key from environment variable
-app.config['SECRET_KEY'] = "3bb41977871bb5de0339a57e3cc1d720"
+app.config['SECRET_KEY'] = config.APP_CONFIG.secret_key
+logging.info(app.config['SECRET_KEY'])
+# app.config['SECRET_KEY'] = "3bb41977871bb5de0339a57e3cc1d720"
 # os.getenv('SECRET_KEY')
 
 # Create a database connection
@@ -70,7 +73,6 @@ def urls_post():
 
 @app.route('/urls')
 def urls_get():
-    # urls = url_manager.read_all_urls()
     urls_with_latest_checks = url_manager.read_url_with_latest_checks()
     # logging.info(urls)
     return render_template(
@@ -82,12 +84,9 @@ def urls_get():
 @app.get('/urls/<url_id>')
 def urls_id(url_id):
     logging.info(f'Start reading url by id: {url_id}')
-    # url_row = read_url_by_id(id)
     url_row = url_manager.read_url(url_id=url_id)
     logging.info(f'End reading url by id: {url_id} result: {url_row['name']}')
-    # url_checks = read_url_checks_all(id)
     url_checks = url_check_manager.read_url_checks(url_id=url_id)
-    # logging.info(url_checks)
     messages = get_flashed_messages(with_categories=True)
     return render_template(
             'url_show.html',
