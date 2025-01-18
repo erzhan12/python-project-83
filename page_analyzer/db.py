@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -10,7 +11,7 @@ class DatabaseConnection:
 
     def __init__(self, database_url=None):
         """
-        Initialize the database connection.
+        Initializes the database connection.
 
         :param database_url: Database connection URL
         (optional, defaults to environment variable)
@@ -18,7 +19,6 @@ class DatabaseConnection:
         load_dotenv()
         self.database_url = database_url or os.getenv('DATABASE_URL')
 
-        # Keepalive configuration to maintain connection stability
         self.keepalive_kwargs = {
             "keepalives": 1,
             "keepalives_idle": 300,
@@ -27,37 +27,54 @@ class DatabaseConnection:
         }
 
         self.connection = None
-        self._connect()
+        self._connect_with_retries()
 
-    def _connect(self):
-        """Establish a database connection."""
-        try:
-            self.connection = psycopg2.connect(
-                self.database_url,
-                **self.keepalive_kwargs
-            )
-        except (Exception, psycopg2.Error) as error:
-            logging.error(f"Error connecting to database: {error}")
-            raise
+    def _connect_with_retries(self, retries=10, delay=3):
+        """
+        Establishes a database connection with retry logic.
+
+        :param retries: Number of connection attempts
+        :param delay: Delay between attempts (seconds)
+        """
+        for attempt in range(1, retries + 1):
+            try:
+                self.connection = psycopg2.connect(
+                    self.database_url,
+                    **self.keepalive_kwargs
+                )
+                logging.info(f"✅ Database connection successful"
+                             f" (attempt {attempt})")
+                return
+            except (Exception, psycopg2.OperationalError) as error:
+                logging.warning(
+                    f"🔁 Database connection failed "
+                    f"(attempt {attempt}/{retries}): {error}"
+                )
+                if attempt < retries:
+                    time.sleep(delay)
+                else:
+                    logging.error("❌ Failed to connect to the database "
+                                  "after multiple attempts")
+                    raise
 
     def get_cursor(self):
         """
-        Create and return a cursor with RealDictCursor factory.
+        Creates and returns a cursor with RealDictCursor factory.
 
         :return: Database cursor
         """
         return self.connection.cursor(cursor_factory=RealDictCursor)
 
     def commit(self):
-        """Commit the current transaction."""
+        """Commits the current transaction."""
         self.connection.commit()
 
     def rollback(self):
-        """Rollback the current transaction."""
+        """Rolls back the current transaction."""
         self.connection.rollback()
 
     def close(self):
-        """Close the database connection."""
+        """Closes the database connection."""
         if self.connection:
             self.connection.close()
 
@@ -67,7 +84,7 @@ class URLManager:
 
     def __init__(self, db_connection):
         """
-        Initialize URLManager with a database connection.
+        Initializes URLManager with a database connection.
 
         :param db_connection: DatabaseConnection instance
         """
@@ -75,7 +92,7 @@ class URLManager:
 
     def insert_url(self, url):
         """
-        Insert a new URL into the database.
+        Inserts a new URL into the database.
 
         :param url: URL to insert
         :return: Inserted URL's ID or None
@@ -89,14 +106,14 @@ class URLManager:
                 url_id = cur.fetchone()['id']
                 self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Error inserting URL: {error}")
+            logging.error(f"❌ Error inserting URL: {error}")
             self.db_connection.rollback()
 
         return url_id
 
     def read_url(self, url=None, url_id=None):
         """
-        Read URL by name or ID.
+        Reads a URL by name or ID.
 
         :param url: URL name to search (optional)
         :param url_id: URL ID to search (optional)
@@ -117,13 +134,13 @@ class URLManager:
                 cur.execute(sql, param)
                 row = cur.fetchone()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Error reading URL: {error}")
+            logging.error(f"❌ Error reading URL: {error}")
 
         return row
 
     def read_all_urls(self):
         """
-        Read all URLs from the database.
+        Reads all URLs from the database.
 
         :return: List of URL records
         """
@@ -135,13 +152,13 @@ class URLManager:
                 cur.execute(sql)
                 rows = cur.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Error reading all URLs: {error}")
+            logging.error(f"❌ Error reading all URLs: {error}")
 
         return rows
 
     def read_url_with_latest_checks(self):
         """
-        Read URLs along with their latest check results.
+        Reads URLs along with their latest check results.
 
         :return: List of URLs with their latest check information
         """
@@ -171,7 +188,7 @@ class URLManager:
                 cur.execute(sql)
                 rows = cur.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Error reading URLs with latest checks: {error}")
+            logging.error(f"❌ Error reading URLs with latest checks: {error}")
 
         return rows
 
@@ -181,7 +198,7 @@ class URLCheckManager:
 
     def __init__(self, db_connection):
         """
-        Initialize URLCheckManager with a database connection.
+        Initializes URLCheckManager with a database connection.
 
         :param db_connection: DatabaseConnection instance
         """
@@ -189,10 +206,10 @@ class URLCheckManager:
 
     def insert_check(self, url_id, url_check_result):
         """
-        Insert a new URL check record.
+        Inserts a new URL check record.
 
         :param url_id: ID of the URL to check
-        :param url_check_result: Tuple result of url check
+        :param url_check_result: Tuple result of URL check
         :return: Inserted check record's ID or None
         """
         sql = ("INSERT INTO url_checks "
@@ -206,14 +223,14 @@ class URLCheckManager:
                 check_id = cur.fetchone()['id']
                 self.db_connection.commit()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Error inserting URL check: {error}")
+            logging.error(f"❌ Error inserting URL check: {error}")
             self.db_connection.rollback()
 
         return check_id
 
     def read_url_checks(self, url_id):
         """
-        Read all checks for a specific URL.
+        Reads all checks for a specific URL.
 
         :param url_id: ID of the URL
         :return: List of URL check records
@@ -227,5 +244,6 @@ class URLCheckManager:
                 cur.execute(sql, (url_id,))
                 rows = cur.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Error reading URL checks: {error}")
+            logging.error(f"❌ Error reading URL checks: {error}")
+
         return rows
