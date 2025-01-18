@@ -34,7 +34,7 @@ class DatabaseConnection:
         try:
             self.connection = psycopg2.connect(
                 self.database_url,
-                # **self.keepalive_kwargs
+                **self.keepalive_kwargs
             )
         except (Exception, psycopg2.Error) as error:
             logging.error(f"Error connecting to database: {error}")
