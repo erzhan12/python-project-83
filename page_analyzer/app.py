@@ -2,7 +2,8 @@ import os
 import time
 import logging
 import psutil
-from flask import Flask, render_template, request, url_for, redirect, flash, get_flashed_messages
+from flask import Flask, render_template, request, url_for
+from flask import redirect, flash, get_flashed_messages
 from dotenv import load_dotenv
 from page_analyzer.validator import URLValidator
 from page_analyzer.url_checker import URLChecker
@@ -33,7 +34,8 @@ url_checker = URLChecker()
 
 def log_resources():
     process = psutil.Process()
-    logging.info(f"🔥 CPU: {process.cpu_percent()}% | RAM: {process.memory_info().rss / 1024 / 1024:.2f} MB")
+    logging.info(f"🔥 CPU: {process.cpu_percent()}% | RAM: "
+                 f"{process.memory_info().rss / 1024 / 1024:.2f} MB")
 
 
 @app.before_request
@@ -45,7 +47,8 @@ def start_timer():
 @app.after_request
 def log_request(response):
     duration = time.time() - request.start_time
-    logging.info(f"⏱️ {request.method} {request.path} | {response.status_code} | {duration:.3f}s")
+    logging.info(f"⏱️ {request.method} {request.path} | "
+                 f"{response.status_code} | {duration:.3f}s")
     return response
 
 
@@ -109,7 +112,8 @@ def urls_id(url_id):
     url_checks = url_check_manager.read_url_checks(url_id=url_id)
     duration = time.time() - start_time
 
-    logging.info(f'✅ Запрос URL завершен за {duration:.3f}s | {url_row["name"]}')
+    logging.info(f'✅ Запрос URL завершен за {duration:.3f}s |'
+                 f' {url_row["name"]}')
 
     messages = get_flashed_messages(with_categories=True)
     return render_template(
@@ -130,7 +134,8 @@ def urls_checks_post(url_id):
         url_check_result = url_checker.check(url_row['name'])
         duration = time.time() - start_time
 
-        logging.info(f"🔎 Проверка URL {url_row['name']} заняла {duration:.3f}s")
+        logging.info(f"🔎 Проверка URL {url_row['name']} "
+                     f"заняла {duration:.3f}s")
 
     except (HTTPError, RequestException) as e:
         logging.error(f"❌ Ошибка при проверке {url_row['name']}: {e}")
