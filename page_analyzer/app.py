@@ -1,45 +1,60 @@
 import os
-from flask import Flask, render_template, request, url_for, redirect
-from flask import flash, get_flashed_messages
+import time
+import logging
+import psutil
+from flask import Flask, render_template, request, url_for, redirect, flash, get_flashed_messages
 from dotenv import load_dotenv
 from page_analyzer.validator import URLValidator
 from page_analyzer.url_checker import URLChecker
-import logging
 from page_analyzer.db import URLManager, URLCheckManager, DatabaseConnection
 from urllib.error import HTTPError
 from requests.exceptions import RequestException
 from page_analyzer.config import config
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# ✅ Настраиваем логирование
+logging.basicConfig(
+    level=logging.INFO,  # Можно поменять на DEBUG, если нужно больше деталей
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
-# Load environment variables
 load_dotenv()
 
-# Create Flask application
 app = Flask(__name__)
-
-# Set secret key from environment variable
 app.config['SECRET_KEY'] = config.APP_CONFIG.secret_key
-# logging.info(app.config['SECRET_KEY'][:5])
-# app.config['SECRET_KEY'] = "3bb41977871bb5de0339a57e3cc1d720"
-# os.getenv('SECRET_KEY')
 
-# Create a database connection
 db_connection = DatabaseConnection(os.getenv('DATABASE_URL'))
-
-# Create managers
 url_manager = URLManager(db_connection)
 url_check_manager = URLCheckManager(db_connection)
 
-# Create URL Validator
 url_validator = URLValidator(url_manager)
-
-# Create URL Checker
 url_checker = URLChecker()
 
 
-# First route handler
+def log_resources():
+    process = psutil.Process()
+    logging.info(f"🔥 CPU: {process.cpu_percent()}% | RAM: {process.memory_info().rss / 1024 / 1024:.2f} MB")
+
+
+@app.before_request
+def start_timer():
+    request.start_time = time.time()
+    log_resources()
+
+
+@app.after_request
+def log_request(response):
+    duration = time.time() - request.start_time
+    logging.info(f"⏱️ {request.method} {request.path} | {response.status_code} | {duration:.3f}s")
+    return response
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logging.error(f"❌ Ошибка: {str(e)}")
+    return "Internal Server Error", 500
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -48,10 +63,10 @@ def index():
 @app.post('/urls')
 def urls_post():
     url = request.form.get('url')
-    # logging.info(url)
-
     messages = url_validator.validate(url)
-    logging.info(f'Validation result: {messages}')
+
+    logging.info(f'🔎 Проверка URL: {url} | Результат: {messages}')
+
     if messages and messages['class'] == 'alert-danger':
         return render_template(
             'index.html',
@@ -59,68 +74,79 @@ def urls_post():
         ), 422
 
     if not messages or messages['class'] != 'alert-info':
-        # insert a new row into db
+        start_time = time.time()
         url_id = url_manager.insert_url(url)
+        duration = time.time() - start_time
+        logging.info(f"✅ URL добавлен в БД за {duration:.3f}s | ID: {url_id}")
+
         if url_id is not None:
             messages['class'] = 'alert-success'
             messages['text'] = 'Страница успешно добавлена'
             messages['id'] = url_id
 
     flash(messages['text'], messages['class'])
-
     return redirect(url_for('urls_id', url_id=messages['id']))
 
 
 @app.route('/urls')
 def urls_get():
+    start_time = time.time()
     urls_with_latest_checks = url_manager.read_url_with_latest_checks()
-    # logging.info(urls)
+    duration = time.time() - start_time
+    logging.info(f"📄 Чтение всех URL заняло {duration:.3f}s")
+
     return render_template(
         'urls.html',
         urls=urls_with_latest_checks
-    ), 422
+    ), 200
 
 
 @app.get('/urls/<url_id>')
 def urls_id(url_id):
-    logging.info(f'Start reading url by id: {url_id}')
+    logging.info(f'🔎 Получение URL по ID: {url_id}')
+    start_time = time.time()
     url_row = url_manager.read_url(url_id=url_id)
-    logging.info(f'End reading url by id: {url_id} result: {url_row['name']}')
     url_checks = url_check_manager.read_url_checks(url_id=url_id)
+    duration = time.time() - start_time
+
+    logging.info(f'✅ Запрос URL завершен за {duration:.3f}s | {url_row["name"]}')
+
     messages = get_flashed_messages(with_categories=True)
     return render_template(
-            'url_show.html',
-            messages=messages,
-            url_row=url_row,
-            url_checks=url_checks
-        ), 422
+        'url_show.html',
+        messages=messages,
+        url_row=url_row,
+        url_checks=url_checks
+    ), 200
 
 
 @app.post('/urls/<url_id>/checks')
 def urls_checks_post(url_id):
     url_check_result = None
-    # read url by id
     url_row = url_manager.read_url(url_id=url_id)
-    # perform checking
+
     try:
+        start_time = time.time()
         url_check_result = url_checker.check(url_row['name'])
-    except (HTTPError, RequestException):
+        duration = time.time() - start_time
+
+        logging.info(f"🔎 Проверка URL {url_row['name']} заняла {duration:.3f}s")
+
+    except (HTTPError, RequestException) as e:
+        logging.error(f"❌ Ошибка при проверке {url_row['name']}: {e}")
         flash('Произошла ошибка при проверке')
-    # insert new check into DB table
+
     if url_check_result:
-        logging.info(f'URL Check Result: {url_check_result}')
+        logging.info(f'✅ Успешная проверка: {url_check_result}')
         url_check_manager.insert_check(url_id, url_check_result)
 
-    # read all checks from db table
     url_checks = url_check_manager.read_url_checks(url_id)
-    # return render url_show checks=checks
     return render_template(
         'url_show.html',
         url_checks=url_checks,
         url_row=url_row
-    ), 422
+    ), 200
 
 
-# This allows the app to be run directly
 if __name__ == '__main__':
     app.run(debug=True)
