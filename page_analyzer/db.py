@@ -21,8 +21,8 @@ class DatabaseConnection:
         # Keepalive configuration to maintain connection stability
         self.keepalive_kwargs = {
             "keepalives": 1,
-            "keepalives_idle": 60,
-            "keepalives_interval": 10,
+            "keepalives_idle": 300,
+            "keepalives_interval": 30,
             "keepalives_count": 5
         }
 
@@ -34,7 +34,7 @@ class DatabaseConnection:
         try:
             self.connection = psycopg2.connect(
                 self.database_url,
-                **self.keepalive_kwargs
+                # **self.keepalive_kwargs
             )
         except (Exception, psycopg2.Error) as error:
             logging.error(f"Error connecting to database: {error}")

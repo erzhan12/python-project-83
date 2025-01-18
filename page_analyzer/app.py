@@ -21,7 +21,7 @@ app = Flask(__name__)
 
 # Set secret key from environment variable
 app.config['SECRET_KEY'] = config.APP_CONFIG.secret_key
-logging.info(app.config['SECRET_KEY'])
+# logging.info(app.config['SECRET_KEY'][:5])
 # app.config['SECRET_KEY'] = "3bb41977871bb5de0339a57e3cc1d720"
 # os.getenv('SECRET_KEY')
 
