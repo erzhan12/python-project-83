@@ -73,21 +73,20 @@ def urls_post():
 
     if messages and messages['class'] == 'alert-danger':
         flash(messages['text'], messages['class'])
-        return render_template(
-            'index.html',
-            messages=[(messages['class'], messages['text'])]
-        ), 422
+        return render_template('index.html', messages=[(messages['class'], messages['text'])]), 422
 
-    if not messages or messages['class'] != 'alert-info':
-        start_time = time.time()
-        url_id = url_manager.insert_url(url)
-        duration = time.time() - start_time
-        logging.info(f"✅ URL добавлен в БД за {duration:.3f}s | ID: {url_id}")
+    existing_url = url_manager.read_url_by_name(url)
+    if existing_url:
+        messages = {'class': 'alert-info', 'text': 'Страница уже существует', 'id': existing_url["id"]}
+        flash(messages['text'], messages['class'])
+        return redirect(url_for('urls_id', url_id=messages['id']))
 
-        if url_id is not None:
-            messages = {'class': 'alert-success', 'text': 'Страница успешно добавлена', 'id': url_id}
+    url_id = url_manager.insert_url(url)
 
-    flash(messages['text'], messages['class'])
+    if url_id is not None:
+        messages = {'class': 'alert-success', 'text': 'Страница успешно добавлена', 'id': url_id}
+        flash(messages['text'], messages['class'])
+
     return redirect(url_for('urls_id', url_id=messages['id']))
 
 
@@ -126,32 +125,22 @@ def urls_id(url_id):
 
 @app.post('/urls/<url_id>/checks')
 def urls_checks_post(url_id):
-    """Handles the process of checking a URL and storing the result."""
-    url_check_result = None
+    """Performs a check on the given URL."""
     url_row = url_manager.read_url(url_id=url_id)
+    url_check_result = None
 
     try:
-        start_time = time.time()
         url_check_result = url_checker.check(url_row['name'])
-        duration = time.time() - start_time
-
-        logging.info(f"🔎 Проверка URL {url_row['name']} заняла {duration:.3f}s")
-
+        print(f'✅ Успешная проверка: {url_check_result}')
     except (HTTPError, RequestException) as e:
-        logging.error(f"❌ Ошибка при проверке {url_row['name']}: {e}")
-        flash('Произошла ошибка при проверке')
+        print(f"❌ Ошибка при проверке {url_row['name']}: {e}")
+        flash('Произошла ошибка при проверке', 'alert-danger')
 
     if url_check_result:
-        logging.info(f'✅ Inserting check for URL ID {url_id} with data: {url_check_result}')
-        check_id = url_check_manager.insert_check(url_id, url_check_result)
-        logging.info(f'✅ DB check insert successful, ID: {check_id}')
+        url_check_manager.insert_check(url_id, url_check_result)
+        flash('Страница успешно проверена', 'alert-success')
 
-    url_checks = url_check_manager.read_url_checks(url_id)
-    return render_template(
-        'url_show.html',
-        url_checks=url_checks,
-        url_row=url_row
-    ), 200
+    return redirect(url_for('urls_id', url_id=url_id))
 
 
 

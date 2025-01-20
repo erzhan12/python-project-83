@@ -12,8 +12,9 @@ load_dotenv()
 class DatabaseConnection:
     """Manages database connection and provides connection utilities."""
 
-    def __init__(self, database_url=None):
-        self.database_url = database_url or os.getenv('DATABASE_URL')
+    def __init__(self, database_url):
+        self.database_url = database_url
+        self.connection = None
 
         self.keepalive_kwargs = {
             "keepalives": 1,
@@ -34,31 +35,31 @@ class DatabaseConnection:
         """Ensure the connection is closed when exiting 'with' block."""
         self.close()
 
-    def _connect_with_retries(self, retries=10, delay=3):
+
+
+    def connect_with_retries(self, retries=10, delay=3):
         """Tries to connect to the database with retries."""
         for attempt in range(1, retries + 1):
             try:
-                self.connection = psycopg2.connect(
-                    self.database_url,
-                    **self.keepalive_kwargs
-                )
+                self.connection = psycopg2.connect(self.database_url)
                 self.connection.autocommit = True
-                logging.info(f"✅ Database connection successful (attempt {attempt})")
+                print(f"✅ Database connected (attempt {attempt})")
                 return
             except psycopg2.OperationalError as error:
                 if "database system is starting up" in str(error):
-                    logging.warning(f"⏳ Database is still starting up, waiting {delay} sec...")
+                    print(f"⏳ Database is starting up, retrying in {delay} sec...")
                     time.sleep(delay)
                 else:
-                    logging.error(f"❌ Failed to connect to database: {error}")
-                    if attempt < retries:
-                        time.sleep(delay)
-                    else:
+                    print(f"❌ Database connection failed: {error}")
+                    if attempt == retries:
                         raise
 
     def get_cursor(self):
-        """Creates and returns a cursor with RealDictCursor factory."""
-        return self.connection.cursor(cursor_factory=RealDictCursor)
+        """Returns a new cursor and ensures the connection is open."""
+        if self.connection is None or self.connection.closed:
+            print("🔄 Reconnecting to the database...")
+            self.connect_with_retries()
+        return self.connection.cursor()
 
     def commit(self):
         """Commits the current transaction."""
@@ -182,9 +183,9 @@ class URLCheckManager:
             with self.db_connection.get_cursor() as cur:
                 cur.execute(sql, (url_id,))
                 checks = cur.fetchall()
-                logging.info(f"🔍 Retrieved checks for URL ID {url_id}: {checks}")
+                print(f"🔍 Retrieved checks for URL ID {url_id}: {checks}")
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"❌ Error reading URL checks: {error}")
+            print(f"❌ Error reading URL checks: {error}")
         return checks
 
     def insert_check(self, url_id, url_check_result):
