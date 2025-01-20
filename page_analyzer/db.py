@@ -23,6 +23,7 @@ class DatabaseConnection:
         }
 
         self.connection = None
+        self._connect_with_retries()
 
     def __enter__(self):
         """Open a new connection when used with 'with' statement."""
@@ -41,17 +42,15 @@ class DatabaseConnection:
                     self.database_url,
                     **self.keepalive_kwargs
                 )
-                logging.info(f"✅ Database connection successful "
-                             f"(attempt {attempt})")
+                self.connection.autocommit = True  # ✅ Добавляем автокоммит
+                logging.info(f"✅ Database connection successful (attempt {attempt})")
                 return
             except (Exception, psycopg2.OperationalError) as error:
-                logging.warning(f"🔁 Database connection failed "
-                                f"(attempt {attempt}/{retries}): {error}")
+                logging.warning(f"🔁 Database connection failed (attempt {attempt}/{retries}): {error}")
                 if attempt < retries:
                     time.sleep(delay)
                 else:
-                    logging.error("❌ Failed to connect to the database "
-                                  "after multiple attempts")
+                    logging.error("❌ Failed to connect to the database after multiple attempts")
                     raise
 
     def get_cursor(self):
@@ -172,36 +171,43 @@ class URLCheckManager:
     def __init__(self, db_connection):
         self.db_connection = db_connection
 
-    def insert_check(self, url_id, check_data):
-        """Inserts a new URL check into the database."""
-        sql = """
-            INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
-            VALUES (%s, %s, %s, %s, %s, NOW()) RETURNING id;
-        """
+    def insert_check(self, url_id, url_check_result):
+        """Inserts a new URL check record and returns its ID."""
+        sql = ("INSERT INTO url_checks (url_id, status_code, h1, title, description) "
+               "VALUES (%s, %s, %s, %s, %s) RETURNING id;")
+        check_id = None
+
         try:
             with self.db_connection.get_cursor() as cur:
-                cur.execute(sql, (url_id, check_data[0], check_data[1], check_data[2], check_data[3]))
+                logging.info(f"📥 Inserting check into DB: {url_check_result}")  # Логируем перед вставкой
+                cur.execute(sql, (url_id, *url_check_result))
                 check_id = cur.fetchone()['id']
-            self.db_connection.commit()
-            return check_id
-        except Exception as error:
+                logging.info(f"✅ Inserted check ID: {check_id}")
+        except (Exception, psycopg2.DatabaseError) as error:
             logging.error(f"❌ Error inserting URL check: {error}")
             self.db_connection.rollback()
-            return None
 
-    def read_url_checks(self, url_id):
-        """Reads all checks for a specific URL."""
-        sql = ("SELECT * FROM url_checks "
-               "WHERE url_id = %s ORDER BY created_at DESC;")
-        rows = []
+        return check_id
 
+    def read_url(self, url=None, url_id=None):
+        """Reads a URL record by name or ID."""
+        if url:
+            sql = "SELECT * FROM urls WHERE name = %s;"
+            param = (url,)
+        elif url_id:
+            sql = "SELECT * FROM urls WHERE id = %s;"
+            param = (url_id,)
+        else:
+            raise ValueError("Either url or url_id must be provided")
+
+        row = None
         try:
-            # with self.db_connection.get_cursor() as cur:
-            with self.db_connection as db:
-                cur = db.get_cursor()
-                cur.execute(sql, (url_id,))
-                rows = cur.fetchall()
+            with self.db_connection.get_cursor() as cur:
+                cur.execute(sql, param)
+                row = cur.fetchone()
+                logging.info(f"🔎 Found URL in DB: {row}")  # Логируем результат
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"❌ Error reading URL checks: {error}")
+            logging.error(f"❌ Error reading URL: {error}")
 
-        return rows
+        return row
+
