@@ -5,18 +5,14 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
+# Загружаем переменные окружения
+load_dotenv()
+
 
 class DatabaseConnection:
     """Manages database connection and provides connection utilities."""
 
     def __init__(self, database_url=None):
-        """
-        Initializes the database connection.
-
-        :param database_url: Database connection URL
-        (optional, defaults to environment variable)
-        """
-        load_dotenv()
         self.database_url = database_url or os.getenv('DATABASE_URL')
 
         self.keepalive_kwargs = {
@@ -27,29 +23,30 @@ class DatabaseConnection:
         }
 
         self.connection = None
+
+    def __enter__(self):
+        """Open a new connection when used with 'with' statement."""
         self._connect_with_retries()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Ensure the connection is closed when exiting 'with' block."""
+        self.close()
 
     def _connect_with_retries(self, retries=10, delay=3):
-        """
-        Establishes a database connection with retry logic.
-
-        :param retries: Number of connection attempts
-        :param delay: Delay between attempts (seconds)
-        """
+        """Tries to connect to the database with retries."""
         for attempt in range(1, retries + 1):
             try:
                 self.connection = psycopg2.connect(
                     self.database_url,
                     **self.keepalive_kwargs
                 )
-                logging.info(f"✅ Database connection successful"
-                             f" (attempt {attempt})")
+                logging.info(f"✅ Database connection successful "
+                             f"(attempt {attempt})")
                 return
             except (Exception, psycopg2.OperationalError) as error:
-                logging.warning(
-                    f"🔁 Database connection failed "
-                    f"(attempt {attempt}/{retries}): {error}"
-                )
+                logging.warning(f"🔁 Database connection failed "
+                                f"(attempt {attempt}/{retries}): {error}")
                 if attempt < retries:
                     time.sleep(delay)
                 else:
@@ -58,11 +55,7 @@ class DatabaseConnection:
                     raise
 
     def get_cursor(self):
-        """
-        Creates and returns a cursor with RealDictCursor factory.
-
-        :return: Database cursor
-        """
+        """Creates and returns a cursor with RealDictCursor factory."""
         return self.connection.cursor(cursor_factory=RealDictCursor)
 
     def commit(self):
@@ -83,20 +76,10 @@ class URLManager:
     """Manages operations related to URLs in the database."""
 
     def __init__(self, db_connection):
-        """
-        Initializes URLManager with a database connection.
-
-        :param db_connection: DatabaseConnection instance
-        """
         self.db_connection = db_connection
 
     def insert_url(self, url):
-        """
-        Inserts a new URL into the database.
-
-        :param url: URL to insert
-        :return: Inserted URL's ID or None
-        """
+        """Inserts a new URL into the database and returns its ID."""
         sql = "INSERT INTO urls (name) VALUES (%s) RETURNING id;"
         url_id = None
 
@@ -112,13 +95,7 @@ class URLManager:
         return url_id
 
     def read_url(self, url=None, url_id=None):
-        """
-        Reads a URL by name or ID.
-
-        :param url: URL name to search (optional)
-        :param url_id: URL ID to search (optional)
-        :return: URL record or None
-        """
+        """Reads a URL record by name or ID."""
         if url:
             sql = "SELECT * FROM urls WHERE name = %s;"
             param = (url,)
@@ -139,11 +116,7 @@ class URLManager:
         return row
 
     def read_all_urls(self):
-        """
-        Reads all URLs from the database.
-
-        :return: List of URL records
-        """
+        """Reads all URLs from the database."""
         sql = "SELECT * FROM urls ORDER BY created_at DESC;"
         rows = []
 
@@ -157,25 +130,17 @@ class URLManager:
         return rows
 
     def read_url_with_latest_checks(self):
-        """
-        Reads URLs along with their latest check results.
-
-        :return: List of URLs with their latest check information
-        """
+        """Reads URLs along with their latest check results."""
         sql = """
         SELECT
             urls.id,
             urls.name,
-            COALESCE(TO_CHAR(latest_check.created_at, 'YYYY-MM-DD'), '')
-                AS latest_created_at,
-            COALESCE(latest_check.status_code::text, '')
-                AS latest_status_code
+            COALESCE(TO_CHAR(latest_check.created_at, 'YYYY-MM-DD'),
+            '') AS latest_created_at,
+            COALESCE(latest_check.status_code::text, '') AS latest_status_code
         FROM urls
         LEFT OUTER JOIN (
-            SELECT DISTINCT ON (url_id)
-                url_id,
-                created_at,
-                status_code
+            SELECT DISTINCT ON (url_id) url_id, created_at, status_code
             FROM url_checks
             ORDER BY url_id, created_at DESC
         ) AS latest_check ON urls.id = latest_check.url_id
@@ -197,21 +162,10 @@ class URLCheckManager:
     """Manages operations related to URL checks in the database."""
 
     def __init__(self, db_connection):
-        """
-        Initializes URLCheckManager with a database connection.
-
-        :param db_connection: DatabaseConnection instance
-        """
         self.db_connection = db_connection
 
     def insert_check(self, url_id, url_check_result):
-        """
-        Inserts a new URL check record.
-
-        :param url_id: ID of the URL to check
-        :param url_check_result: Tuple result of URL check
-        :return: Inserted check record's ID or None
-        """
+        """Inserts a new URL check record and returns its ID."""
         sql = ("INSERT INTO url_checks "
                "(url_id, status_code, h1, title, description) "
                "VALUES (%s, %s, %s, %s, %s) RETURNING id;")
@@ -229,14 +183,9 @@ class URLCheckManager:
         return check_id
 
     def read_url_checks(self, url_id):
-        """
-        Reads all checks for a specific URL.
-
-        :param url_id: ID of the URL
-        :return: List of URL check records
-        """
-        sql = ("SELECT * FROM url_checks WHERE url_id = (%s) "
-               "ORDER BY created_at DESC;")
+        """Reads all checks for a specific URL."""
+        sql = ("SELECT * FROM url_checks "
+               "WHERE url_id = %s ORDER BY created_at DESC;")
         rows = []
 
         try:
