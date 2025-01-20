@@ -17,7 +17,6 @@ from page_analyzer.utilities import (
 )
 from page_analyzer.url_repository import UrlRepository
 
-
 app = Flask(__name__)
 load_dotenv()
 database_url = os.getenv('DATABASE_URL')

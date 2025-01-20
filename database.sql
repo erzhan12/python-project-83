@@ -1,18 +1,15 @@
-DROP TABLE IF EXISTS url_checks;
-DROP TABLE IF EXISTS urls;
-
 CREATE TABLE IF NOT EXISTS urls (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    name VARCHAR(255) NOT NULL,
+    created_at DATE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS url_checks (
+CREATE TABLE IF NOT EXISTS url_cheks (
     id SERIAL PRIMARY KEY,
-    url_id INT REFERENCES urls(id),
+    url_id INT REFERENCES urls (id) NOT NULL,
     status_code INT,
     h1 VARCHAR(255),
-    title VARCHAR(255),
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP    
+    title VARCHAR(255) NOT NULL,
+    description VARCHAR(255),
+    created_at DATE DEFAULT CURRENT_TIMESTAMP
 );
