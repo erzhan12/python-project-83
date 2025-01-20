@@ -20,6 +20,7 @@ requests = "^2.32.3"
 bs4 = "^0.0.2"
 pydantic-settings = "^2.7.0"
 psutil = "^6.1.1"
+lxml = "^5.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
