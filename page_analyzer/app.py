@@ -97,12 +97,12 @@ def url_checks(id):
     db.commit(conn)
 
     try:
-        resp = requests.get(url.name)
-        resp.raise_for_status()
-    except requests.exceptions.RequestException:
-        # Если при проверке что-то пошло не так - должны сообщить пользователю
-        flash('Произошла ошибка при проверке', 'danger')
-        return redirect(url_for('url_show', id=id))
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        logging.error(f'Ошибка проверки {url}: {e}')
+        flash('Произошла ошибка при проверке', 'alert-danger')
+        return redirect(url_for('urls_id', url_id=url_id))
 
     page_data = html.get_page_data(resp)
     db.insert_page_check(conn, id, page_data)
