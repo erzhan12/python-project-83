@@ -10,6 +10,7 @@ lint:
 	poetry run flake8 page_analyzer
 
 test:
+	sleep 10
 	poetry run pytest
 
 start:
