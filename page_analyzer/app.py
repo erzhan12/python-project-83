@@ -24,6 +24,7 @@ app.config['DATABASE_URL'] = os.getenv('DATABASE_URL')
 
 @app.route('/')
 def index():
+    print("Index route accessed")
     return render_template('index.html')
 
 
@@ -42,27 +43,29 @@ def urls_show():
 
 @app.post('/urls')
 def post_url():
-    url = request.form.get('url')
-    if not url:
-        flash('Некорректный URL', 'danger')
-        return redirect(url_for('index'))
+    url = request.form.get('url', '')
+    print(f"Received URL: {url}")  # Логируем запрос
+    error = urls.validate(url)
+
+    if error:
+        flash(error, 'danger')
+        return render_template('index.html', url_name=url), 422
 
     conn = db.get_db(app)
     normalized_url = urls.normalize(url)
-    existing_url = db.get_url_by_name(conn, normalized_url)
+    existed_url = db.get_url_by_name(conn, normalized_url)
     db.commit(conn)
 
-    if existing_url:
+    if existed_url:
+        id = existed_url.id
         flash('Страница уже существует', 'info')
-        db.close(conn)
-        return redirect(url_for('url_show', id=existing_url.id))
+    else:
+        id = db.insert_url(conn, normalized_url)
+        db.commit(conn)
+        flash('Страница успешно добавлена', 'success')
 
-    url_id = db.insert_url(conn, normalized_url)
-    db.commit(conn)
     db.close(conn)
-
-    flash('Страница успешно добавлена', 'success')
-    return redirect(url_for('url_show', id=url_id))
+    return redirect(url_for('url_show', id=id))
 
 
 @app.route('/urls/<int:id>')

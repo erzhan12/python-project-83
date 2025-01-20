@@ -1,6 +1,6 @@
 <form action="{{ url_for('post_url') }}" method="post" class="d-flex justify-content-center">
     <label for="url" class="visually-hidden">Url для проверки</label>
     <input id="url" type="text" name="url" placeholder="https://www.example.com"
-           value="{{ url_name }}" class="form-control form-control-lg" required>
+           value="{{ url_name }}" class="form-control form-control-lg" required data-test="url-input">
     <input type="submit" class="btn btn-primary btn-lg ms-3 px-5 text-uppercase mx-3" value="Проверить">
 </form>
