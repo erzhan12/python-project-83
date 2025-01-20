@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}Сайт: {{ url.name }}{% endblock %}
+{% block content %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover text-nowrap" data-test="url">
+      <tbody>
+        <tr>
+          <td>ID</td>
+          <td>{{ url.id }}</td>
+        </tr>
+        <tr>
+          <td>Имя</td>
+          <td>{{ url.name }}</td>
+        </tr>
+        <tr>
+          <td>Дата создания</td>
+          <td>{{ url.created_at }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+    <h2 class="mt-5 mb-3">Проверки</h2>
+    <form method="post" action="{{ url_for('url_checks', id=url.id) }}">
+    <input type="submit" class="btn btn-primary" value="Запустить проверку">
+    </form>
+
+  <div>
+    <table class="table table-bordered table-hover mt-2" data-test="checks">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Код ответа</th>
+        <th>h1</th>
+        <th>title</th>
+        <th>description</th>
+        <th>Дата создания</th>
+      </tr>
+    </thead>
+      <tbody>
+    {% for check in checks %}
+    <tr>
+        <td>{{ check.id }}</td>
+        <td>{{ check.status_code }}</td>
+        <td>{{ check.h1|truncate(200)}}</td>
+        <td>{{ check.title|truncate(200) }}</td>
+        <td>{{ check.description|truncate(200) }}</td>
+        <td>{{ check.created_at }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+  </div>
+{% endblock %}

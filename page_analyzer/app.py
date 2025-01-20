@@ -22,9 +22,6 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['DATABASE_URL'] = os.getenv('DATABASE_URL')
 
 
-# По умолчанию делаем без контроллеров, но если хотят, то пусть используют
-# Все маршруты должны быть именованными
-# Именование маршрутов должно соответствовать ресурсному роутингу
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -45,29 +42,27 @@ def urls_show():
 
 @app.post('/urls')
 def post_url():
-    url = request.form['url']
-    # NOTE: чтобы вывести только 1 флеш сообщение с первой попавшейся ошибкой
-    # Можно выводить и несколько сообщений, но лучше внутри одного алерта
-    error = urls.validate(url)
-    if error:
-        flash(error, 'danger')
-        return render_template('index.html', url_name=url), 422
+    url = request.form.get('url')
+    if not url:
+        flash('Некорректный URL', 'danger')
+        return redirect(url_for('index'))
 
     conn = db.get_db(app)
     normalized_url = urls.normalize(url)
-    existed_url = db.get_url_by_name(conn, normalized_url)
+    existing_url = db.get_url_by_name(conn, normalized_url)
     db.commit(conn)
 
-    if existed_url:
-        id = existed_url.id
+    if existing_url:
         flash('Страница уже существует', 'info')
-    else:
-        id = db.insert_url(conn, normalized_url)
-        db.commit(conn)
-        flash('Страница успешно добавлена', 'success')
+        db.close(conn)
+        return redirect(url_for('url_show', id=existing_url.id))
+
+    url_id = db.insert_url(conn, normalized_url)
+    db.commit(conn)
     db.close(conn)
 
-    return redirect(url_for('url_show', id=id))
+    flash('Страница успешно добавлена', 'success')
+    return redirect(url_for('url_show', id=url_id))
 
 
 @app.route('/urls/<int:id>')
@@ -101,7 +96,7 @@ def url_checks(id):
         response.raise_for_status()
     except requests.RequestException as e:
         logging.error(f'Ошибка проверки {url}: {e}')
-        flash('Произошла ошибка при проверке', 'alert-danger')
+        flash('Произошла ошибка при проверке', 'danger')
         return redirect(url_for('urls_id', url_id=url_id))
 
     page_data = html.get_page_data(resp)
