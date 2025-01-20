@@ -172,25 +172,22 @@ class URLCheckManager:
     def __init__(self, db_connection):
         self.db_connection = db_connection
 
-    def insert_check(self, url_id, url_check_result):
-        """Inserts a new URL check record and returns its ID."""
-        sql = ("INSERT INTO url_checks "
-               "(url_id, status_code, h1, title, description) "
-               "VALUES (%s, %s, %s, %s, %s) RETURNING id;")
-        check_id = None
-
+    def insert_check(self, url_id, check_data):
+        """Inserts a new URL check into the database."""
+        sql = """
+            INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW()) RETURNING id;
+        """
         try:
-            # with self.db_connection.get_cursor() as cur:
-            with self.db_connection as db:
-                cur = db.get_cursor()
-                cur.execute(sql, (url_id, *url_check_result))
+            with self.db_connection.get_cursor() as cur:
+                cur.execute(sql, (url_id, check_data[0], check_data[1], check_data[2], check_data[3]))
                 check_id = cur.fetchone()['id']
-                self.db_connection.commit()
-        except (Exception, psycopg2.DatabaseError) as error:
+            self.db_connection.commit()
+            return check_id
+        except Exception as error:
             logging.error(f"❌ Error inserting URL check: {error}")
             self.db_connection.rollback()
-
-        return check_id
+            return None
 
     def read_url_checks(self, url_id):
         """Reads all checks for a specific URL."""

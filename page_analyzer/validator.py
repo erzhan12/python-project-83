@@ -13,13 +13,11 @@ class URLValidator:
 
     def validate(self, url):
         self.messages = {}
-        validation_result = None
         try:
             validation_result = url_validator(url)
         except ValidationError:
-            pass
+            validation_result = False
 
-        # logging.info(validation_result)
         if validation_result is not True:
             self.messages['text'] = 'Некорректный URL'
             self.messages['class'] = 'alert-danger'
@@ -29,14 +27,16 @@ class URLValidator:
             self.messages['text'] = "URL превышает 255 символов"
             self.messages['class'] = 'alert-danger'
         else:
-            # check DB table if name exists
-            logging.info(f'Start reading URL {url}')
-            row = self.url_manager.read_url(url)
-            logging.info(f'End reading URL {url}. Result: {row}')
-            if row is not None:
+            logging.info(f'Start checking URL {url}')
+            row = self.url_manager.read_url(url)  # ✅ Читаем URL из БД
+            logging.info(f'End checking URL {url}. Result: {row}')
+            if row:
                 self.messages['text'] = 'Страница уже существует'
                 self.messages['class'] = 'alert-info'
                 self.messages['id'] = row['id']
+            else:
+                self.messages['text'] = 'Страница успешно добавлена'
+                self.messages['class'] = 'alert-success'
 
         return self.messages
 
