@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block title %}Сайты{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+    <h1>Сайты<h1>
+    <table class="table table-bordered table-striped" data-test="urls">
+        <thead class="fs-4">
+            <tr>
+                <td>ID</td>
+                <td>Имя</td>
+                <td>Последняя проверка</td>
+                <td>Код ответа</td>
+            </tr>
+        </thead>
+        <tbody class="fs-6 fw-normal">
+            {% for url in urls %}
+            <tr>
+                <td>{{ url.id }}</td>
+                <td>
+                <a href="{{ url_for('get_url', id=url.id) }}">{{ url.name }}</a>
+                </td>
+                <td>{{ url.check or '' }}</td>
+                <td>{{ url.status or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="container my-3">
+    <p><a href="{{ url_for('home_page') }}">Вернуться на главную</a></p>    
+</div>
+{% endblock %}

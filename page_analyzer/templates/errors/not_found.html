@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block title %}Не найден ID{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+    <h1>Страница не найдена</h1>
+    <p>Записи с таким ID не существует</p>
+    <p><a href="{{ url_for('home_page') }}">Вернуться на главную</a></p>    
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}Информация о сайте{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+    <h1>Сайт: {{ url_info['name'] }}</h1>
+    <table class="table table-bordered table-striped" data-test="url">
+        <tr>
+            <td>ID</td>
+            <td>{{ url_info['id'] }}</td>
+        </tr>
+        <tr>
+            <td>Имя</td>
+            <td>{{ url_info['name'] }}</td>
+        </tr>
+        <tr>
+            <td>Дата создания</td>
+            <td>{{ url_info['created_at'] }}</td>
+        </tr>
+    </table>
+
+    <h1 class="mt-5">Проверки</h1>
+    <form class="" action="{{ url_for('post_url_check', id=url_info['id']) }}" method="post">
+        <button type="submit" class="btn btn-dark">Запустить проверку</button>
+    </form>
+    <table class="mt-3 table table-bordered table-striped" data-test="checks">
+        <thead>
+            <tr class="fw-bold">
+                <th>ID</th>
+                <th>Код ответа</th>
+                <th>h1</th>
+                <th>title</th>
+                <th>description</th>
+                <th>Дата создания</th>
+            </tr>
+        </thead>
+        <tbody class="fs-6 fw-normal">
+            {% for check in url_check %}
+            <tr>
+                <td>{{ check['id'] }}</td>
+                <td>{{ check['status_code'] or '' }}</td>
+                <td>{{ check['h1'] or '' }}</td>
+                <td>{{ check['title'] or '' }}</td>
+                <td>{{ check['description'] or '' }}</td>
+                <td>{{ check['created_at'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="container my-3">
+        <p><a href="{{ url_for('home_page') }}">Вернуться на главную</a></p>    
+    </div>
+</div>
+{% endblock %}

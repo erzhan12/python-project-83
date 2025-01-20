@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block title %}Внутренняя ошибка сервера{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+    <h1>Внутренняя ошибка сервера</h1>
+    <p>Упс... Возникла непредусмотренная ошибка</p>
+    <p><a href="{{ url_for('home_page') }}">Вернуться на главную</a></p>    
+</div>
+{% endblock %}
