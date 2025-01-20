@@ -65,12 +65,14 @@ def index():
 
 @app.post('/urls')
 def urls_post():
+    """Handles the addition of a new URL to the database."""
     url = request.form.get('url')
     messages = url_validator.validate(url)
 
     logging.info(f'🔎 Проверка URL: {url} | Результат: {messages}')
 
     if messages and messages['class'] == 'alert-danger':
+        flash(messages['text'], messages['class'])
         return render_template(
             'index.html',
             messages=[(messages['class'], messages['text'])]
@@ -83,9 +85,7 @@ def urls_post():
         logging.info(f"✅ URL добавлен в БД за {duration:.3f}s | ID: {url_id}")
 
         if url_id is not None:
-            messages['class'] = 'alert-success'
-            messages['text'] = 'Страница успешно добавлена'
-            messages['id'] = url_id
+            messages = {'class': 'alert-success', 'text': 'Страница успешно добавлена', 'id': url_id}
 
     flash(messages['text'], messages['class'])
     return redirect(url_for('urls_id', url_id=messages['id']))

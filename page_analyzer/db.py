@@ -42,16 +42,19 @@ class DatabaseConnection:
                     self.database_url,
                     **self.keepalive_kwargs
                 )
-                self.connection.autocommit = True  # ✅ Добавляем автокоммит
+                self.connection.autocommit = True
                 logging.info(f"✅ Database connection successful (attempt {attempt})")
                 return
-            except (Exception, psycopg2.OperationalError) as error:
-                logging.warning(f"🔁 Database connection failed (attempt {attempt}/{retries}): {error}")
-                if attempt < retries:
+            except psycopg2.OperationalError as error:
+                if "database system is starting up" in str(error):
+                    logging.warning(f"⏳ Database is still starting up, waiting {delay} sec...")
                     time.sleep(delay)
                 else:
-                    logging.error("❌ Failed to connect to the database after multiple attempts")
-                    raise
+                    logging.error(f"❌ Failed to connect to database: {error}")
+                    if attempt < retries:
+                        time.sleep(delay)
+                    else:
+                        raise
 
     def get_cursor(self):
         """Creates and returns a cursor with RealDictCursor factory."""
@@ -170,6 +173,19 @@ class URLCheckManager:
 
     def __init__(self, db_connection):
         self.db_connection = db_connection
+
+    def read_url_checks(self, url_id):
+        """Fetches all checks for a given URL."""
+        sql = "SELECT * FROM url_checks WHERE url_id = %s ORDER BY created_at DESC;"
+        checks = []
+        try:
+            with self.db_connection.get_cursor() as cur:
+                cur.execute(sql, (url_id,))
+                checks = cur.fetchall()
+                logging.info(f"🔍 Retrieved checks for URL ID {url_id}: {checks}")
+        except (Exception, psycopg2.DatabaseError) as error:
+            logging.error(f"❌ Error reading URL checks: {error}")
+        return checks
 
     def insert_check(self, url_id, url_check_result):
         """Inserts a new URL check record and returns its ID."""
