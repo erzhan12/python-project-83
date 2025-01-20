@@ -84,7 +84,9 @@ class URLManager:
         url_id = None
 
         try:
-            with self.db_connection.get_cursor() as cur:
+            # with self.db_connection.get_cursor() as cur:
+            with self.db_connection as db:
+                cur = db.get_cursor()
                 cur.execute(sql, (url,))
                 url_id = cur.fetchone()['id']
                 self.db_connection.commit()
@@ -107,7 +109,9 @@ class URLManager:
 
         row = None
         try:
-            with self.db_connection.get_cursor() as cur:
+            # with self.db_connection.get_cursor() as cur:
+            with self.db_connection as db:
+                cur = db.get_cursor()
                 cur.execute(sql, param)
                 row = cur.fetchone()
         except (Exception, psycopg2.DatabaseError) as error:
@@ -121,7 +125,9 @@ class URLManager:
         rows = []
 
         try:
-            with self.db_connection.get_cursor() as cur:
+            # with self.db_connection.get_cursor() as cur:
+            with self.db_connection as db:
+                cur = db.get_cursor()
                 cur.execute(sql)
                 rows = cur.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
@@ -149,7 +155,9 @@ class URLManager:
         rows = []
 
         try:
-            with self.db_connection.get_cursor() as cur:
+            # with self.db_connection.get_cursor() as cur:
+            with self.db_connection as db:
+                cur = db.get_cursor()
                 cur.execute(sql)
                 rows = cur.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
@@ -172,7 +180,9 @@ class URLCheckManager:
         check_id = None
 
         try:
-            with self.db_connection.get_cursor() as cur:
+            # with self.db_connection.get_cursor() as cur:
+            with self.db_connection as db:
+                cur = db.get_cursor()
                 cur.execute(sql, (url_id, *url_check_result))
                 check_id = cur.fetchone()['id']
                 self.db_connection.commit()
@@ -189,7 +199,9 @@ class URLCheckManager:
         rows = []
 
         try:
-            with self.db_connection.get_cursor() as cur:
+            # with self.db_connection.get_cursor() as cur:
+            with self.db_connection as db:
+                cur = db.get_cursor()
                 cur.execute(sql, (url_id,))
                 rows = cur.fetchall()
         except (Exception, psycopg2.DatabaseError) as error:
