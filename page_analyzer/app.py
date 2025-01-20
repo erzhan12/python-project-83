@@ -23,9 +23,9 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['DATABASE_URL'] = os.getenv('DATABASE_URL')
 
 
-@app.route("/")
+@app.route('/')
 def index():
-    time.sleep(3)  # Добавляем задержку в 3 секунды
+    time.sleep(5)  # Ожидание перед загрузкой страницы
     return render_template("index.html")
 
 
