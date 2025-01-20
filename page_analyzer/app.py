@@ -1,5 +1,5 @@
 import os
-
+import logging
 import requests
 from dotenv import load_dotenv
 from flask import (
@@ -100,9 +100,9 @@ def url_checks(id):
     except requests.RequestException as e:
         logging.error(f'Ошибка проверки {url}: {e}')
         flash('Произошла ошибка при проверке', 'danger')
-        return redirect(url_for('urls_id', url_id=url_id))
+        return redirect(url_for('url_show', id=id))
 
-    page_data = html.get_page_data(resp)
+    page_data = html.get_page_data(response)
     db.insert_page_check(conn, id, page_data)
     db.commit(conn)
     flash('Страница успешно проверена', 'success')
